@@ -118,7 +118,7 @@ It's optionnal
 	    <artifactId>spring-boot-starter-remote-shell</artifactId>
 	</dependency>
 
-Setup the started
+Setup the starter
 -----
 In application.properties
 
