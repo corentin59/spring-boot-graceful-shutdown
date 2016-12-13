@@ -103,7 +103,7 @@ Add spring-boot-starter-graceful-shutdown in your pom.xml
 -----
 
     <dependency>
-	   <groupId>com.nordnet</groupId>
+	   <groupId>fr.azelart</groupId>
 	   <artifactId>spring-boot-starter-graceful-shutdown</artifactId>
 	   <version>X.X.X</version>
 	</dependency>
