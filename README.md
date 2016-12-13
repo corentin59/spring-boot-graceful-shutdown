@@ -9,7 +9,7 @@ An issue is open on github : https://github.com/spring-projects/spring-boot/issu
 To gain time, I have written a new Spring-Boot starter based on Spring-Boot actuator. When we hit a shutdown, the starter denied new http connections and wait end of currents connections.
 
 Endpoints exposed :
-- HTTP : REST API /shutdown (with spring-boot-starter-actuator)
+- HTTP : REST API /gracefulshutdown (with spring-boot-starter-actuator)
 - JMX (with spring-boot-starter-actuator)
 - SSH (with spring-boot-starter-remote-shell)
 
@@ -23,7 +23,8 @@ We support currently : Undertow and Tomcat
 
 How it works
 -------------
-TODO
+
+![workflow](https://raw.githubusercontent.com/corentin59/spring-boot-graceful-shutdown/master/docs/images/workflow.png)
 
 How to for ops
 -------------
@@ -33,7 +34,7 @@ Setup
 3 properties in application.properties (or application.yml)
 
 | Property  | Default | Description |
-| ------------- | ------------- |
+| ------------- | ------------- | ------------- |
 | endpoints.shutdown.graceful.enabled  | false  | Activate the starter and expose endpoints |
 | endpoints.shutdown.graceful.timeout | 30 | Wait "30" seconds before make a force shutdown |
 | endpoints.shutdown.graceful.wait| 30 | The time before launch graceful shutdown, the health checker return OUT_OF_SERVICE |
@@ -52,13 +53,15 @@ If the spring-boot-starter-remote-shell is in dependencies, you can type the fol
 
     endpoint invoke gracefulShutdownEndpoint
 
+![crash](https://raw.githubusercontent.com/corentin59/spring-boot-graceful-shutdown/master/docs/images/ssh.png)
+
 Please refer to [remote shell manual](http://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-remote-shell.html) for setup and security.
 
 Logs
 -----
 | Level | Sample | Description |
 | ------------- | ------------- | ------------- |
-| INFO | Mapped "{[/shutdowngraceful | /shutdowngraceful.json],methods=[POST],produces=[application/json]}" | 	If graceful shutdown starter is enabled |
+| INFO | Mapped "{[/shutdowngraceful..." | 	If graceful shutdown starter is enabled |
 | INFO | Shutdown performed in ?? second(s) | When the shutdown is performed |
 | INFO | Graceful shutdown in progress.. We don't accept new connection... Wait after latest connections (max : ?? seconds) | When we start a graceful shutdown |
 | INFO | Thread pool is empty, we stop now | No active HTTP connection, we can kill |
