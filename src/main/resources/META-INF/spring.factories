@@ -1,0 +1,3 @@
+# Auto Configurations Main class
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.azelart.gracefulshutdow.configuration.GracefulShutdownAutoConfiguration
