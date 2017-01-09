@@ -6,10 +6,10 @@ import com.azelart.gracefulshutdow.properties.GracefulShutdownProperties;
 import com.azelart.gracefulshutdow.service.TomcatShutdown;
 import com.azelart.gracefulshutdow.service.UndertowShutdown;
 import com.azelart.gracefulshutdow.wrapper.UndertowShutdownHandlerWrapper;
-import io.undertow.Undertow;
-import io.undertow.servlet.api.DeploymentInfo;
+
 import org.apache.catalina.startup.Tomcat;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,6 +23,12 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.xnio.SslClientAuthMode;
+
+import javax.servlet.Servlet;
+
+import io.undertow.Undertow;
+import io.undertow.servlet.api.DeploymentInfo;
 
 /**
  * This configuration class will be picked up by Spring Boot's auto configuration capabilities as soon as it's
@@ -44,8 +50,8 @@ public class GracefulShutdownAutoConfiguration {
      * Configuration for Tomcat.
      */
     @Configuration
-    @ConditionalOnClass({ Tomcat.class })
-    //@ConditionalOnMissingBean(value = EmbeddedServletContainerFactory.class, search = SearchStrategy.CURRENT)
+    @ConditionalOnClass({Servlet.class, Tomcat.class})
+    @ConditionalOnBean(TomcatEmbeddedServletContainerFactory.class)
     public static class EmbeddedTomcat {
         @Bean
         public TomcatShutdown tomcatShutdown() {
@@ -72,8 +78,8 @@ public class GracefulShutdownAutoConfiguration {
      * Configuration for Undertow.
      */
     @Configuration
-    @ConditionalOnClass({ Undertow.class })
-    //@ConditionalOnMissingBean(value = EmbeddedServletContainerFactory.class, search = SearchStrategy.CURRENT)
+    @ConditionalOnClass({Servlet.class, Undertow.class, SslClientAuthMode.class})
+    @ConditionalOnBean(UndertowEmbeddedServletContainerFactory.class)
     public static class EmbeddedUndertow {
 
         @Bean
@@ -81,11 +87,20 @@ public class GracefulShutdownAutoConfiguration {
             return new UndertowShutdown();
         }
 
+
+        /**
+         * Customise the undertow factory.
+         * @return an EmbeddedServletContainerCustomizer
+         */
         @Bean
-        public UndertowEmbeddedServletContainerFactory undertowEmbeddedServletContainerFactory() {
-            final UndertowEmbeddedServletContainerFactory undertowEmbeddedServletContainer = new UndertowEmbeddedServletContainerFactory();
-            undertowEmbeddedServletContainer.addDeploymentInfoCustomizers(undertowDeploymentInfoCustomizer());
-            return undertowEmbeddedServletContainer;
+        public EmbeddedServletContainerCustomizer undertowCustomizer() {
+            return new EmbeddedServletContainerCustomizer() {
+                public void customize(ConfigurableEmbeddedServletContainer container) {
+                    if (container instanceof UndertowEmbeddedServletContainerFactory) {
+                        ((UndertowEmbeddedServletContainerFactory) container).addDeploymentInfoCustomizers(undertowDeploymentInfoCustomizer());
+                    }
+                }
+            };
         }
 
         @Bean
