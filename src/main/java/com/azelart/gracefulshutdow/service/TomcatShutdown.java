@@ -5,7 +5,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tomcat.util.threads.ThreadPoolExecutor;
 import org.springframework.boot.context.embedded.tomcat.TomcatConnectorCustomizer;
+import org.springframework.util.ReflectionUtils;
 
+import java.lang.reflect.Field;
+import java.net.ServerSocket;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +37,10 @@ public class TomcatShutdown implements Shutdown, TomcatConnectorCustomizer {
 
         // Start the pause.
         connector.pause();
+
+        // Close the server socket to make sure new connections are refused
+        // instead of stalling in the accept queue while the endpoint is paused.
+        closeServerSocket();
     }
 
     /**
@@ -58,6 +65,28 @@ public class TomcatShutdown implements Shutdown, TomcatConnectorCustomizer {
             logger.warn("Tomcat thread pool did not shut down gracefully within " + delay + " second(s). Proceeding with force shutdown");
         } else {
             logger.debug("Tomcat thread pool is empty, we stop now");
+        }
+    }
+
+    /**
+     * Close the underlying server socket so that new HTTP connections are refused
+     * at the TCP level instead of stalling in the accept queue while the connector
+     * is paused. Existing connections keep being handled until they complete.
+     */
+    private void closeServerSocket() {
+        try {
+            final Object endpoint = connector.getProtocolHandler().getEndpoint();
+            final Field serverSocketField = ReflectionUtils.findField(endpoint.getClass(), "serverSocket");
+            if (serverSocketField != null) {
+                ReflectionUtils.makeAccessible(serverSocketField);
+                final Object serverSocket = ReflectionUtils.getField(serverSocketField, endpoint);
+                if (serverSocket instanceof ServerSocket && !((ServerSocket) serverSocket).isClosed()) {
+                    ((ServerSocket) serverSocket).close();
+                    logger.info("Tomcat server socket is closed, new connections are now refused");
+                }
+            }
+        } catch (final Exception ex) {
+            logger.warn("Unable to close the tomcat server socket : " + ex.getMessage());
         }
     }
 
